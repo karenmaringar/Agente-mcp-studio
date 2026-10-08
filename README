@@ -1,0 +1,148 @@
+# 🎓 Agente Asistente de Estudio
+
+Agente de IA para la terminal que conversa, hace cálculos y guarda notas. Está construido con **Gemini**, **LangChain**, **memoria conversacional** y **herramientas (Tools) publicadas por un servidor MCP local**.
+
+Es un proyecto pequeño y didáctico para entender cómo funciona un agente de IA de principio a fin.
+
+## ✨ Qué demuestra
+
+| Concepto | Dónde se ve |
+|---|---|
+| **Gemini** genera las respuestas | `ChatGoogleGenerativeAI` en `agente_mcp.py` |
+| **LangChain** conecta los componentes | `create_agent(...)` |
+| **Tools** que el agente decide usar | `calculadora` y `guardar_nota` |
+| **MCP** separa las Tools del agente | `servidor_mcp.py` + `MultiServerMCPClient` |
+| **Memoria** de la conversación | `InMemorySaver` + `thread_id` |
+
+## 🧠 Cómo funciona
+
+```text
+Tú → agente_mcp.py (LangChain + Gemini + memoria)
+            ↓  protocolo MCP (stdio)
+     servidor_mcp.py (calculadora, guardar_nota)  →  notas.txt
+```
+
+1. Escribes un mensaje en la terminal.
+2. El agente se lo envía a Gemini junto con el historial y la lista de Tools que ofrece el servidor MCP.
+3. Gemini decide si responde directamente o si necesita una Tool.
+4. Si necesita una Tool, el agente le pide al servidor MCP que la ejecute y le devuelve el resultado a Gemini.
+5. Gemini redacta la respuesta final y la conversación queda guardada en la memoria.
+
+**El agente decide; el servidor MCP ejecuta.** El servidor no usa Gemini ni tiene memoria: solo ofrece funciones.
+
+## 🛠️ Tools
+
+| Tool | Qué hace | Ejemplo |
+|---|---|---|
+| `calculadora` | Evalúa operaciones matemáticas básicas | "¿Cuánto es 15 * 8?" |
+| `guardar_nota` | Guarda una nota en `notas.txt` | "Guarda esta nota: estudiar agentes." |
+
+## 📁 Estructura
+
+```text
+agente-estudio/
+├── agente.py          # Versión inicial: las Tools están dentro del agente
+├── agente_mcp.py      # Agente con Gemini + memoria que usa el servidor MCP
+├── servidor_mcp.py    # Servidor MCP local con las Tools
+├── notas.txt          # Se crea automáticamente al guardar una nota
+├── .env               # Tu API key (NO se sube a GitHub)
+└── .gitignore
+```
+
+## ✅ Requisitos
+
+- Python 3.10 o superior
+- Una API key de Gemini, gratuita en [Google AI Studio](https://aistudio.google.com)
+
+## 🚀 Instalación
+
+```bash
+# 1. Clonar el repositorio
+git clone <URL-DE-TU-REPOSITORIO>
+cd agente-estudio
+
+# 2. Crear el entorno virtual
+python -m venv venv
+
+# 3. Activarlo
+# Windows (PowerShell):
+venv\Scripts\Activate.ps1
+# Mac / Linux:
+source venv/bin/activate
+
+# 4. Instalar los paquetes
+python -m pip install langchain langchain-google-genai python-dotenv langchain-mcp-adapters "mcp<2"
+```
+
+> **Por qué `mcp<2`:** la versión actual de `langchain-mcp-adapters` no es compatible con `mcp` 2.x y falla al importar. Fijar `mcp` en una versión anterior lo soluciona.
+
+## 🔑 Configuración
+
+Crea un archivo `.env` en la raíz del proyecto con tu API key:
+
+```text
+GOOGLE_API_KEY=tu_api_key_aqui
+```
+
+Sin comillas y sin espacios alrededor del `=`. El archivo `.gitignore` ya excluye `.env` para que tu clave no se suba al repositorio.
+
+## ▶️ Uso
+
+```bash
+python agente_mcp.py
+```
+
+No hace falta iniciar el servidor aparte: el agente lo lanza automáticamente. Escribe `salir` para terminar.
+
+### Ejemplo de conversación
+
+```text
+Tools cargadas desde el servidor MCP: ['calculadora', 'guardar_nota']
+
+Tú: Hola, soy Karen.
+Agente: ¡Hola, Karen!
+
+Tú: ¿Cuánto es 15 * 8?
+   🔧 Tool MCP usada: calculadora
+Agente: 15 * 8 es 120.
+
+Tú: Guarda esta nota: estudiar agentes.
+   🔧 Tool MCP usada: guardar_nota
+Agente: He guardado la nota.
+
+Tú: ¿Cómo me llamo?
+Agente: Te llamas Karen.
+```
+
+Las respuestas exactas pueden variar, porque Gemini redacta distinto cada vez. La línea `🔧` indica que el agente decidió usar una Tool.
+
+## ⚙️ Cambiar el modelo
+
+El modelo se define en `agente_mcp.py`:
+
+```python
+llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", timeout=120, max_retries=2)
+```
+
+Los modelos disponibles en el nivel gratuito cambian con el tiempo. Si recibes un error `404` de modelo no encontrado, consulta la lista de modelos en Google AI Studio y cambia el nombre.
+
+## ⚠️ Limitaciones
+
+- **La memoria vive en RAM** (`InMemorySaver`): se borra al cerrar el programa.
+- **El nivel gratuito de Gemini** tiene límites y a veces responde con errores `503` (modelo saturado) o `504` (tiempo de espera). Repetir el mensaje suele bastar; el proyecto ya usa `timeout` y `max_retries`.
+- **La calculadora** usa `eval` con una lista restringida de caracteres (solo números y `+ - * / ( )`). Es suficiente para un proyecto de estudio; en producción convendría un analizador matemático dedicado.
+- **El servidor MCP es local** (transporte `stdio`): corre en tu computador y lo lanza el propio agente.
+
+## 🔭 Ideas para continuar
+
+- Un servidor MCP que analice archivos CSV con pandas.
+- Un servidor de flashcards para estudiar.
+- Conectar varios servidores MCP al mismo agente con `MultiServerMCPClient`.
+
+## 🧰 Tecnologías
+
+Python · Gemini API · LangChain · `langchain-google-genai` · `langchain-mcp-adapters` · MCP (Model Context Protocol) · `python-dotenv`
+
+---
+
+Proyecto académico para aprender los fundamentos de los agentes de IA.

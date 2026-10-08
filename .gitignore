@@ -1,0 +1,15 @@
+# Secretos: nunca se suben
+.env
+
+# Entorno virtual
+venv/
+
+# Archivos que Python genera solos
+__pycache__/
+*.pyc
+
+# Notas de prueba generadas por el agente (opcional)
+notas.txt
+
+# Configuración personal de VS Code (opcional)
+.vscode/
